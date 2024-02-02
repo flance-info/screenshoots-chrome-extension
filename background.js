@@ -118,37 +118,26 @@ async function initiateDesktopCapture() {
 	}
 }
 
-async function getDesktopStream(retries = 3) {
+async function getDesktopStream() {
 	return new Promise((resolve, reject) => {
-		function attemptCapture() {
-			chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (streamId) => {
-				if (!streamId) {
-					// If no streamId is provided, the user canceled the capture
-					if (retries > 0) {
-						// Retry the capture (you might want to implement a more sophisticated retry mechanism)
-						retries--;
-						attemptCapture();
-					} else {
-						reject(new Error('User canceled desktop capture or reached maximum retries.'));
+		chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (streamId) => {
+			if (!streamId) {
+				reject(new Error('User cancelled desktop capture.'));
+				return;
+			}
+
+			navigator.mediaDevices.getUserMedia({
+				audio: false,
+				video: {
+					mandatory: {
+						chromeMediaSource: 'desktop',
+						chromeMediaSourceId: streamId
 					}
-					return;
 				}
-
-				navigator.mediaDevices.getUserMedia({
-					audio: false,
-					video: {
-						mandatory: {
-							chromeMediaSource: 'desktop',
-							chromeMediaSourceId: streamId
-						}
-					}
-				})
-					.then(resolve)
-					.catch(reject);
-			});
-		}
-
-		attemptCapture();
+			})
+				.then(resolve)
+				.catch(reject);
+		});
 	});
 }
 
