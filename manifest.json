@@ -10,7 +10,18 @@
   "icons": {
     "48": "icon.png"
   },
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab",
+    "tabs" ,
+    "storage",
+    "unlimitedStorage",
+    "browsingData",
+    "notifications",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
