@@ -32,12 +32,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	async function startRecording() {
 		try {
-			stream = await chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (id) => {
-				return id;
-			});
-			console.log('stream', stream);
+			stream = await getDesktopStream();
+
 			mediaRecorder = new MediaRecorder(stream);
-console.log('mediaRecorder', mediaRecorder);
+
 			mediaRecorder.ondataavailable = function (event) {
 				if (event.data.size > 0) {
 					recordedChunks.push(event.data);
@@ -48,9 +46,9 @@ console.log('mediaRecorder', mediaRecorder);
 				const blob = new Blob(recordedChunks, {type: 'video/webm'});
 				recordedChunks = [];
 
-
-				chrome.storage.local.set({'recordedVideo': blob}, function () {
-					console.log('Video URL saved to storage');
+				// Save the video to chrome.storage or handle it as needed
+				chrome.storage.local.set({'recordedVideoBlob': blob}, function () {
+					console.log('Video Blob saved to storage');
 				});
 			};
 
@@ -64,6 +62,29 @@ console.log('mediaRecorder', mediaRecorder);
 		}
 	}
 
+	async function getDesktopStream() {
+		return new Promise((resolve, reject) => {
+			chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (streamId) => {
+				if (!streamId) {
+					reject(new Error('User cancelled desktop capture.'));
+					return;
+				}
+
+				navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: {
+						mandatory: {
+							chromeMediaSource: 'desktop',
+							chromeMediaSourceId: streamId
+						}
+					}
+				})
+					.then(resolve)
+					.catch(reject);
+			});
+		});
+	}
+
 	function stopRecording() {
 		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
 			mediaRecorder.stop();
@@ -74,5 +95,6 @@ console.log('mediaRecorder', mediaRecorder);
 			document.getElementById('stopRecording').disabled = true;
 		}
 	}
+
 
 });
