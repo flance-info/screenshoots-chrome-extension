@@ -16,7 +16,8 @@
     "unlimitedStorage",
     "browsingData",
     "notifications",
-    "scripting"
+    "scripting",
+     "downloads"
   ],
   "host_permissions": [
     "http://*/*",
