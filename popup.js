@@ -1,7 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-	// popup.js
-
 	document.getElementById('captureBtn').addEventListener('click', function () {
 		chrome.runtime.sendMessage({action: 'capture'});
 	});
@@ -19,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	async function startRecording() {
 		try {
 			stream = await getDesktopStream();
-			console.log(stream);
+
 			mediaRecorder = new MediaRecorder(stream);
 
 			mediaRecorder.ondataavailable = function (event) {
