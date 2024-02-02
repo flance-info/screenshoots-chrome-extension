@@ -146,8 +146,6 @@ function stopRecording() {
 	if (mediaRecorder && mediaRecorder.state !== 'inactive') {
 		mediaRecorder.stop();
 		stream.getTracks().forEach(track => track.stop());
-
-		// Update recording status
 		recording = false;
 	}
 }
