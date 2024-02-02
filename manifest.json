@@ -17,7 +17,8 @@
     "browsingData",
     "notifications",
     "scripting",
-     "downloads"
+     "downloads",
+    "desktopCapture"
   ],
   "host_permissions": [
     "http://*/*",
