@@ -76,6 +76,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function startRecording() {
 	try {
+		// Send a message to the content script to initiate desktop capture
+		chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+			if (tabs[0]) {
+				chrome.tabs.sendMessage(tabs[0].id, {action: 'initiateDesktopCapture'});
+			}
+		});
+	} catch (error) {
+		console.error('Error starting recording:', error);
+	}
+}
+
+async function initiateDesktopCapture() {
+	try {
 		stream = await getDesktopStream();
 
 		mediaRecorder = new MediaRecorder(stream);
@@ -92,42 +105,53 @@ async function startRecording() {
 			let blobUrl = URL.createObjectURL(blob);
 			chrome.storage.local.set({'recordedVideoBlob': blobUrl}, function () {
 				console.log('Video Blob saved to storage');
-				document.getElementById('downloadVideo').disabled = false;
+				chrome.runtime.sendMessage({action: 'enableDownloadButton'});
 			});
 		};
 
 		mediaRecorder.start();
-		document.getElementById('startRecording').disabled = true;
-		document.getElementById('stopRecording').disabled = false;
+
 		// Update recording status
 		recording = true;
 	} catch (error) {
-		console.error('Error starting recording:', error);
+		console.error('Error initiating desktop capture:', error);
 	}
 }
 
-async function getDesktopStream() {
+async function getDesktopStream(retries = 3) {
 	return new Promise((resolve, reject) => {
-		chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (streamId) => {
-			if (!streamId) {
-				reject(new Error('User cancelled desktop capture.'));
-				return;
-			}
-
-			navigator.mediaDevices.getUserMedia({
-				audio: false,
-				video: {
-					mandatory: {
-						chromeMediaSource: 'desktop',
-						chromeMediaSourceId: streamId
+		function attemptCapture() {
+			chrome.desktopCapture.chooseDesktopMedia(['screen', 'window'], (streamId) => {
+				if (!streamId) {
+					// If no streamId is provided, the user canceled the capture
+					if (retries > 0) {
+						// Retry the capture (you might want to implement a more sophisticated retry mechanism)
+						retries--;
+						attemptCapture();
+					} else {
+						reject(new Error('User canceled desktop capture or reached maximum retries.'));
 					}
+					return;
 				}
-			})
-				.then(resolve)
-				.catch(reject);
-		});
+
+				navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: {
+						mandatory: {
+							chromeMediaSource: 'desktop',
+							chromeMediaSourceId: streamId
+						}
+					}
+				})
+					.then(resolve)
+					.catch(reject);
+			});
+		}
+
+		attemptCapture();
 	});
 }
+
 
 function stopRecording() {
 	if (mediaRecorder && mediaRecorder.state !== 'inactive') {
