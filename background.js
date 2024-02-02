@@ -58,7 +58,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 		video.play();
 	}
 });
-
 let stream;
 let mediaRecorder;
 let recordedChunks = [];
@@ -72,6 +71,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	} else if (request.action === 'downloadVideo') {
 		downloadVideo();
 	}
+});
+
+chrome.runtime.onConnect.addListener((port) => {
+	port.onMessage.addListener((msg) => {
+		if (msg.action === 'enableDownloadButton') {
+			enableDownloadButton();
+		}
+	});
 });
 
 async function startRecording() {
@@ -92,13 +99,17 @@ async function startRecording() {
 			let blobUrl = URL.createObjectURL(blob);
 			chrome.storage.local.set({'recordedVideoBlob': blobUrl}, function () {
 				console.log('Video Blob saved to storage');
-				document.getElementById('downloadVideo').disabled = false;
+				// Notify the content script in the active tab to enable the download button
+				chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+					if (tabs[0]) {
+						chrome.tabs.connect(tabs[0].id, {name: 'enableDownloadButton'});
+					}
+				});
 			});
 		};
 
 		mediaRecorder.start();
-		document.getElementById('startRecording').disabled = true;
-		document.getElementById('stopRecording').disabled = false;
+
 		// Update recording status
 		recording = true;
 	} catch (error) {
@@ -154,12 +165,21 @@ function downloadVideo() {
 				} else {
 					console.log('Video download started with ID:', downloadId);
 				}
-			});
 
-			// Clean up the Blob URL after the download is initiated
-			URL.revokeObjectURL(blobUrl);
+				// Clean up the Blob URL after the download is initiated
+				URL.revokeObjectURL(blobUrl);
+			});
 		} else {
 			console.error('Recorded video Blob not found in storage');
+		}
+	});
+}
+
+function enableDownloadButton() {
+	// Notify the content script in the active tab to enable the download button
+	chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+		if (tabs[0]) {
+			chrome.tabs.sendMessage(tabs[0].id, {action: 'enableDownloadButton'});
 		}
 	});
 }
