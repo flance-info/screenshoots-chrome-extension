@@ -5,21 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	document.getElementById('captureBtn').addEventListener('click', function () {
 		chrome.runtime.sendMessage({action: 'capture'});
 	});
-
-
-	function createVideo() {
-		const screenshots = JSON.parse(localStorage.getItem('screenshots')) || [];
-		const video = document.createElement('video');
-
-		screenshots.forEach(function (screenshot) {
-			const img = document.createElement('img');
-			img.src = screenshot;
-			video.appendChild(img);
-		});
-
-		document.body.appendChild(video);
-		video.play();
-	}
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -29,11 +14,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	document.getElementById('startRecording').addEventListener('click', startRecording);
 	document.getElementById('stopRecording').addEventListener('click', stopRecording);
+	document.getElementById('downloadVideo').addEventListener('click', downloadVideo);
 
 	async function startRecording() {
 		try {
 			stream = await getDesktopStream();
-
+			console.log(stream);
 			mediaRecorder = new MediaRecorder(stream);
 
 			mediaRecorder.ondataavailable = function (event) {
@@ -43,12 +29,13 @@ document.addEventListener('DOMContentLoaded', function () {
 			};
 
 			mediaRecorder.onstop = function () {
+				console.log('recordedChunksddd', recordedChunks);
 				const blob = new Blob(recordedChunks, {type: 'video/webm'});
 				recordedChunks = [];
-
-				// Save the video to chrome.storage or handle it as needed
-				chrome.storage.local.set({'recordedVideoBlob': blob}, function () {
+				let blobUrl = URL.createObjectURL(blob);
+				chrome.storage.local.set({'recordedVideoBlob': blobUrl}, function () {
 					console.log('Video Blob saved to storage');
+					document.getElementById('downloadVideo').disabled = false;
 				});
 			};
 
@@ -94,6 +81,31 @@ document.addEventListener('DOMContentLoaded', function () {
 			document.getElementById('startRecording').disabled = false;
 			document.getElementById('stopRecording').disabled = true;
 		}
+	}
+
+	function downloadVideo() {
+		chrome.storage.local.get(['recordedVideoBlob'], function (result) {
+			const blobUrl = result.recordedVideoBlob;
+			console.log(blobUrl);
+			if (blobUrl) {
+				chrome.downloads.download({
+					url: blobUrl,
+					filename: 'recorded_video.webm',
+					saveAs: false
+				}, function (downloadId) {
+					if (chrome.runtime.lastError) {
+						console.error('Error downloading video:', chrome.runtime.lastError);
+					} else {
+						console.log('Video download started with ID:', downloadId);
+					}
+				});
+
+				// Clean up the Blob URL after the download is initiated
+				URL.revokeObjectURL(blobUrl);
+			} else {
+				console.error('Recorded video Blob not found in storage');
+			}
+		});
 	}
 
 
