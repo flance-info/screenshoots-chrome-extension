@@ -1,23 +1,20 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Screenshot to Video",
   "version": "1.0",
   "description": "Take screenshots and create a video from them.",
-  "permissions": ["activeTab", "storage", "tabs"],
-  "browser_action": {
-    "default_icon": "icon.png",
+  "action": {
     "default_popup": "popup.html",
-    "default_title": "Screenshot to Video"
+    "default_icon": "icon.png"
   },
   "icons": {
     "48": "icon.png"
   },
+  "permissions": ["activeTab", "storage", "scripting"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
+      "js": ["content.js"]
     }
   ]
 }
-
