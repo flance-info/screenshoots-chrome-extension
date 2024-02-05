@@ -102,6 +102,7 @@ async function initiateDesktopCapture() {
 		mediaRecorder.onstop = function () {
 			const blob = new Blob(recordedChunks, {type: 'video/webm'});
 			recordedChunks = [];
+
 			let blobUrl = URL.createObjectURL(blob);
 			chrome.storage.local.set({'recordedVideoBlob': blobUrl}, function () {
 				console.log('Video Blob saved to storage');
